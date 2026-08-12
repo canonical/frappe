@@ -92,6 +92,47 @@ class TestClientCache(IntegrationTestCase):
 
 		self.assertEqual(len(c.cache), 2)
 
+	def test_client_cache_maxsize_bytes(self):
+		c = ClientCache(maxsize_bytes=50_000)
+		for _ in range(10):
+			c.set_value(frappe.generate_hash(), "z" * 10_000)
+
+		self.assertLessEqual(c._total_size, 50_000 + 10_100)
+		self.assertEqual(c._total_size, sum(e.size for e in c.cache.values()))
+
+	def test_client_cache_no_byte_limit_by_default(self):
+		c = ClientCache()
+		for _ in range(10):
+			c.set_value(frappe.generate_hash(), "z" * 10_000)
+
+		self.assertEqual(c.maxsize_bytes, 0)
+		self.assertEqual(len(c.cache), 10)
+
+	def test_client_cache_size_accounting(self):
+		c = ClientCache()
+		key = frappe.generate_hash()
+
+		c.set_value(key, "z" * 10_000)
+		self.assertEqual(c._total_size, sum(e.size for e in c.cache.values()))
+
+		# overwriting must not double count
+		c.set_value(key, "z" * 10_000)
+		self.assertEqual(c._total_size, sum(e.size for e in c.cache.values()))
+
+		c.delete_value(key)
+		self.assertEqual(c._total_size, sum(e.size for e in c.cache.values()))
+
+	def test_client_cache_size_not_leaked_on_expiry(self):
+		"""An expired entry is replaced by a placeholder, its size must be released."""
+		c = ClientCache(ttl=1)
+		key = frappe.generate_hash()
+		c.set_value(key, "z" * 10_000)
+
+		for _ in range(3):
+			time.sleep(1)
+			c.get_value(key)
+			self.assertEqual(c._total_size, sum(e.size for e in c.cache.values()))
+
 	def test_shared_keyspace(self):
 		val = frappe.generate_hash()
 		frappe.client_cache.set_value(TEST_KEY, val)
