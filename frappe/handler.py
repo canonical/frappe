@@ -19,7 +19,6 @@ from frappe.permissions import check_doctype_permission
 from frappe.utils import cint, get_files_path
 from frappe.utils.csvutils import build_csv_response
 from frappe.utils.deprecations import deprecated
-from frappe.utils.image import optimize_image
 from frappe.utils.response import build_response
 
 if TYPE_CHECKING:
@@ -202,6 +201,8 @@ def upload_file():
 		temp_path.unlink()
 		content_type = guess_type(filename)[0]
 		if optimize and content_type and content_type.startswith("image/"):
+			from frappe.utils.image import optimize_image
+
 			args = {"content": content, "content_type": content_type}
 			if frappe.form_dict.max_width:
 				args["max_width"] = int(frappe.form_dict.max_width)

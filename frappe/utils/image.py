@@ -3,9 +3,11 @@
 import io
 import os
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageFile, ImageOps
 
 import frappe
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True  # nosemgrep
 
 
 def resize_images(path, maxdim=700):
