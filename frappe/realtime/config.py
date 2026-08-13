@@ -7,7 +7,7 @@ the Node ``node_utils.get_conf`` reads) instead of re-porting the JSON parse.
 Config comes only from common_site_config.json / site_config.json — no env vars.
 
 ``frappe`` is imported lazily so this module can be imported in tests without a
-configured bench, and so import never precedes the gevent monkeypatch in server.py.
+configured bench.
 """
 
 from dataclasses import dataclass
@@ -19,6 +19,10 @@ DEFAULT_SOCKETIO_PORT = 9000
 # is silent on redis_queue, which should not happen in a real bench.
 DEFAULT_REDIS_QUEUE = "redis://127.0.0.1:11311"
 
+# Threads serving blocking handlers and HTTP permission checks. The work is IO-bound,
+# so this is sized well above the interpreter default rather than by CPU count.
+DEFAULT_WORKER_THREADS = 64
+
 
 @dataclass(frozen=True)
 class RealtimeConfig:
@@ -29,6 +33,7 @@ class RealtimeConfig:
 	developer_mode: bool = False
 	webserver_port: int | None = None
 	webserver_host: str | None = None
+	worker_threads: int = DEFAULT_WORKER_THREADS
 
 
 def get_config(sites_path: str | None = None) -> RealtimeConfig:
@@ -47,4 +52,5 @@ def get_config(sites_path: str | None = None) -> RealtimeConfig:
 		developer_mode=bool(conf.get("developer_mode")),
 		webserver_port=int(webserver_port) if webserver_port else None,
 		webserver_host=conf.get("webserver_host") or None,
+		worker_threads=int(conf.get("socketio_worker_threads") or DEFAULT_WORKER_THREADS),
 	)
