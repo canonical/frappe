@@ -4,7 +4,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    # Run everday at midnight UTC / 5:30 IST
+    # Run everday at midnight UTC / 5:30 IST test
     - cron: "0 0 * * *"
 
 concurrency:
