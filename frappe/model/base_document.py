@@ -855,7 +855,7 @@ class BaseDocument:
 				doc.db_update()
 
 	def show_unique_validation_message(self, e):
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			fieldname = str(e).split("'")[-2]
 			label = None
 

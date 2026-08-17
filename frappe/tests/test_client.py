@@ -163,7 +163,7 @@ class TestClient(IntegrationTestCase):
 		self.assertTrue(validate_link_and_fetch("Role", "System Manager"))
 
 		# fixes capitalization
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			self.assertEqual(validate_link_and_fetch("Role", "system manager"), {"name": "System Manager"})
 
 		# Fetch

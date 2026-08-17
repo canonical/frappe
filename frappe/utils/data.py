@@ -2331,7 +2331,7 @@ def _sanitize_column(column_name: str, db_type: str) -> str:
 	from frappe import _
 
 	column_name = sqlparse.format(column_name, strip_comments=True, keyword_case="lower")
-	if db_type == "mariadb":
+	if db_type in ("mariadb", "mysql"):
 		# strip mariadb specific comments which are like python single line comments
 		column_name = MARIADB_SPECIFIC_COMMENT.sub("", column_name)
 

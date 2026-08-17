@@ -1058,7 +1058,7 @@ class Column:
 
 		if self.df.fieldtype == "Link":
 			# find all values that dont exist
-			transform = (lambda v: cstr(v).lower()) if frappe.db.db_type == "mariadb" else cstr
+			transform = (lambda v: cstr(v).lower()) if frappe.db.db_type in ("mariadb", "mysql") else cstr
 			original_values = {transform(v): cstr(v) for v in self.column_values if v}
 			values = list(original_values.keys())
 			exists = [

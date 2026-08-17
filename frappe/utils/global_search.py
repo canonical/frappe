@@ -412,7 +412,7 @@ def sync_values(values: list):
 		query = query.on_conflict(GlobalSearch.doctype, GlobalSearch.name)
 
 	for field in conflict_fields:
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			query = query.on_duplicate_key_update(GlobalSearch[field], Values(field))
 		elif frappe.db.db_type == "postgres":
 			query = query.do_update(GlobalSearch[field])

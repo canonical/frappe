@@ -236,7 +236,7 @@ def get_heatmap_chart_config(chart, filters, heatmap_year):
 	filters.append([doctype, datefield, ">", f"{year_start_date}"])
 	filters.append([doctype, datefield, "<", f"{next_year_start_date}"])
 
-	if frappe.db.db_type == "mariadb":
+	if frappe.db.db_type in ("mariadb", "mysql"):
 		timestamp_field = f"unix_timestamp({datefield})"
 	else:
 		timestamp_field = f"extract(epoch from timestamp {datefield})"

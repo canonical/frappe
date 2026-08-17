@@ -586,7 +586,7 @@ class TestCommands(BaseTestCommands):
 	def test_existing_db_username(self):
 		site = frappe.generate_hash()
 		user = "".join(secrets.choice(string.ascii_letters) for _ in range(8))
-		if frappe.conf.db_type == "mariadb":
+		if frappe.conf.db_type in ("mariadb", "mysql"):
 			from frappe.database.mariadb.setup_db import get_root_connection
 
 			root_conn = get_root_connection()
@@ -670,7 +670,7 @@ class TestBackups(BaseTestCommands):
 		self.assertNotEqual(before_backup["database"], after_backup["database"])
 
 	@skipIf(
-		not (frappe.conf.db_type == "mariadb"),
+		not (frappe.conf.db_type in ("mariadb", "mysql")),
 		"Only for MariaDB",
 	)
 	def test_backup_extract_restore(self):
@@ -691,7 +691,7 @@ class TestBackups(BaseTestCommands):
 		self.assertEqual(self.returncode, 0)
 
 	@skipIf(
-		not (frappe.conf.db_type == "mariadb"),
+		not (frappe.conf.db_type in ("mariadb", "mysql")),
 		"Only for MariaDB",
 	)
 	def test_old_backup_restore(self):
@@ -961,7 +961,7 @@ class TestBenchBuild(IntegrationTestCase):
 
 class TestDBUtils(BaseTestCommands):
 	@skipIf(
-		not (frappe.conf.db_type == "mariadb"),
+		not (frappe.conf.db_type in ("mariadb", "mysql")),
 		"Only for MariaDB",
 	)
 	def test_db_add_index(self):
@@ -1009,7 +1009,7 @@ class TestDBCli(BaseTestCommands):
 	def test_db_cli_with_sql(self):
 		if frappe.db.db_type == "postgres":
 			self.execute("bench --site {site} db-console -c 'select 1'")
-		elif frappe.db.db_type == "mariadb":
+		elif frappe.db.db_type in ("mariadb", "mysql"):
 			self.execute("bench --site {site} db-console -e 'select 1'")
 		self.assertEqual(self.returncode, 0)
 		self.assertIn("1", self.stdout)

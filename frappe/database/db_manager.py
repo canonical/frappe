@@ -78,7 +78,7 @@ class DbManager:
 		else:
 			command.extend(["cat", source, "|"])
 
-		if frappe.conf.db_type == "mariadb":
+		if frappe.conf.db_type in ("mariadb", "mysql"):
 			# Newer versions of MariaDB add in a line that'll break on older versions, so remove it
 			command.extend(["sed", r"'/\/\*M\{0,1\}!999999\\- enable the sandbox mode \*\//d'", "|"])
 

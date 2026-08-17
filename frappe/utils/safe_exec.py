@@ -751,7 +751,7 @@ def check_safe_sql_query(query: str, throw: bool = True) -> bool:
 		return False
 
 	if query.startswith(whitelisted_statements) or (
-		query.startswith("with") and frappe.db.db_type == "mariadb"
+		query.startswith("with") and frappe.db.db_type in ("mariadb", "mysql")
 	):
 		return True
 

@@ -19,7 +19,7 @@ def execute():
 
 		# TODO: Add postgres support (for the check)
 		if (
-			frappe.conf.db_type == "mariadb"
+			frappe.conf.db_type in ("mariadb", "mysql")
 			and frappe.db.get_column_type(doctype_name, field) == RATING_FIELD_TYPE
 		):
 			continue

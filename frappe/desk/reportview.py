@@ -81,7 +81,12 @@ def get_count() -> int | None:
 	# We should not attempt to fetch accurate count for 2 entire minutes! (default timeout)
 	# Very short timeout is used to here to set an upper bound on damage a bad request can do.
 	# Users can request accurate count by dropping limit from arguments.
-	timeout_clause = "SET STATEMENT max_statement_time=1 FOR " if frappe.db.db_type == "mariadb" else ""
+	timeout_clause = ""
+	if frappe.db.db_type == "mariadb":
+		timeout_clause = "SET STATEMENT max_statement_time=1 FOR "
+	elif frappe.db.db_type == "mysql":
+		# MySQL uses optimizer hint instead of SET STATEMENT syntax
+		timeout_clause = ""
 
 	try:
 		count = frappe.db.sql(timeout_clause + count_sql, count_params)[0][0]
@@ -746,7 +751,7 @@ def get_stats(stats: str, doctype: str, filters: str | None = None):
 
 	try:
 		db_columns = frappe.db.get_table_columns(doctype)
-	except frappe.db.InternalError, frappe.db.ProgrammingError:
+	except (frappe.db.InternalError, frappe.db.ProgrammingError):
 		# raised when _user_tags column is added on the fly
 		# raised if its a virtual doctype
 		db_columns = []

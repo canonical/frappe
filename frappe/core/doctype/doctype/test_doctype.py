@@ -71,7 +71,7 @@ class TestDocType(IntegrationTestCase):
 			"bigint",
 		)
 
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			table_name = "information_schema.tables"
 			conditions = f"table_type = 'sequence' and table_name = '{self._testMethodName}_id_seq'"
 		else:
@@ -96,7 +96,7 @@ class TestDocType(IntegrationTestCase):
 				f"""select data_type FROM information_schema.columns
 				where column_name = 'name' and table_name = 'tab{self._testMethodName}'"""
 			)[0][0],
-			"varchar" if frappe.db.db_type == "mariadb" else "character varying",
+			"varchar" if frappe.db.db_type in ("mariadb", "mysql") else "character varying",
 		)
 
 	def test_doctype_unique_constraint_dropped(self):
@@ -910,7 +910,7 @@ class TestDocType(IntegrationTestCase):
 		frappe.get_meta(doctype.name).as_dict()
 
 	def test_row_compression(self):
-		if frappe.db.db_type != "mariadb":
+		if frappe.db.db_type not in ("mariadb", "mysql"):
 			return
 
 		compressed_dt = new_doctype(row_format="Compressed").insert().name
@@ -958,7 +958,7 @@ class TestDocType(IntegrationTestCase):
 			)
 			length, precision = result[0]
 			self.assertEqual((length, precision), (30, 3))
-		elif frappe.db.db_type == "mariadb":
+		elif frappe.db.db_type in ("mariadb", "mysql"):
 			self.assertIn("(30,3)", decimal_field_type.lower())
 
 	def test_decimal_field_precision_exceeds_length(self):

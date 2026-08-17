@@ -556,7 +556,7 @@ def _enter_console(extra_args=None):
 	from frappe.database import get_command
 	from frappe.utils import get_site_path
 
-	if frappe.conf.db_type == "mariadb":
+	if frappe.conf.db_type in ("mariadb", "mysql"):
 		os.environ["MYSQL_HISTFILE"] = os.path.abspath(get_site_path("logs", "mariadb_console.log"))
 	elif frappe.conf.db_type == "sqlite":
 		os.environ["SQLITE_HISTORY"] = os.path.abspath(get_site_path("logs", "sqlite_console.log"))
@@ -723,7 +723,7 @@ def transform_database(context: CliCtxObj, table, engine, row_format, failfast):
 	skipped = 0
 	frappe.init(site)
 
-	if frappe.conf.db_type != "mariadb":
+	if frappe.conf.db_type not in ("mariadb", "mysql"):
 		click.secho("This command only has support for MariaDB databases at this point", fg="yellow")
 		sys.exit(1)
 

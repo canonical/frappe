@@ -945,7 +945,7 @@ class TestQuery(IntegrationTestCase):
 		query = str(frappe.qb.get_query("Test Blog Post", ignore_permissions=False))
 
 		# Check for user permission condition in the query string
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			self.assertIn("IFNULL(`name`,'')='' OR `name` IN ('_Test Blog Post 1','_Test Blog Post')", query)
 		elif frappe.db.db_type == "postgres":
 			self.assertIn(
@@ -2080,7 +2080,7 @@ class TestQuery(IntegrationTestCase):
 			],
 		)
 		sql = query.get_sql()
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			self.assertIn(
 				self.normalize_sql("1/NULLIF(LOCATE('test',`name`),0) `relevance`"),
 				self.normalize_sql(sql),

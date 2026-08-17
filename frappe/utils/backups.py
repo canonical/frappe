@@ -437,7 +437,7 @@ class BackupGenerator:
 
 		cmd = []
 		extra = []
-		if self.db_type == "mariadb":
+		if self.db_type in ("mariadb", "mysql"):
 			if self.backup_includes:
 				extra.extend(self.backup_includes)
 			elif self.backup_excludes:

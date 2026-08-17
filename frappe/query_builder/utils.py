@@ -25,12 +25,14 @@ class PseudoColumnMapper(PseudoColumn):
 
 class db_type_is(Enum):
 	MARIADB = "mariadb"
+	MYSQL = "mysql"
 	POSTGRES = "postgres"
 	SQLITE = "sqlite"
 
 
 DB_TYPE_MAP = {
 	db_type_is.MARIADB: MariaDB,
+	db_type_is.MYSQL: MariaDB,  # MySQL uses same PyPika dialect as MariaDB
 	db_type_is.POSTGRES: Postgres,
 	db_type_is.SQLITE: SQLite,
 }
@@ -42,6 +44,9 @@ class ImportMapper:
 
 	def __call__(self, *args: Any, **kwds: Any) -> Callable:
 		db = db_type_is(frappe.conf.db_type)
+		# Fall back to MARIADB handler for MYSQL if no explicit MYSQL entry
+		if db not in self.func_map and db == db_type_is.MYSQL:
+			db = db_type_is.MARIADB
 		return self.func_map[db](*args, **kwds)
 
 

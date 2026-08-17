@@ -22,8 +22,8 @@ from frappe.utils.bench_helper import CliCtxObj
 @click.option(
 	"--db-type",
 	default="mariadb",
-	type=click.Choice(["mariadb", "postgres", "sqlite"]),
-	help='Optional "sqlite", "postgres" or "mariadb". Default is "mariadb"',
+	type=click.Choice(["mariadb", "mysql", "postgres", "sqlite"]),
+	help='Optional "sqlite", "postgres", "mysql" or "mariadb". Default is "mariadb"',
 )
 @click.option("--db-host", help="Database Host")
 @click.option("--db-port", type=int, help="Database Port")
@@ -91,6 +91,7 @@ def new_site(
 
 	frappe.init(site, new_site=True)
 	db_labels = {
+		"mysql": "MySQL",
 		"postgres": "PostgreSQL",
 		"sqlite": "SQLite",
 	}

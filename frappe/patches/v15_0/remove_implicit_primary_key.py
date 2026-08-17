@@ -31,7 +31,7 @@ def execute():
 			and _is_implicit_int_pk(doctype)
 			and not is_autoincremented(doctype)
 		):
-			if frappe.db.db_type == "mariadb":
+			if frappe.db.db_type in ("mariadb", "mysql"):
 				frappe.db.sql(f"ALTER TABLE `tab{doctype}` MODIFY name varchar({frappe.db.VARCHAR_LEN})")
 			else:
 				frappe.db.sql(
@@ -42,7 +42,7 @@ def execute():
 def _is_implicit_int_pk(doctype: str) -> bool:
 	query = f"""select data_type FROM information_schema.columns where column_name = 'name' and table_name = 'tab{doctype}'"""
 	values = ()
-	if frappe.db.db_type == "mariadb":
+	if frappe.db.db_type in ("mariadb", "mysql"):
 		query += " and table_schema = %s"
 		values = (frappe.db.cur_db_name,)
 

@@ -363,7 +363,7 @@ class DocType(Document):
 						continue  # Invalid expression
 					link_df = new_meta.get_field(link_fieldname)
 
-					if frappe.db.db_type == "mariadb":
+					if frappe.db.db_type in ("mariadb", "mysql"):
 						update_query = """
 							UPDATE `tab{doctype}` as target
 							INNER JOIN `tab{link_doctype}` as source

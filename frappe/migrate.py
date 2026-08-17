@@ -222,7 +222,7 @@ class SiteMigration:
 
 		This is required to avoid indefinitely waiting for metadata lock.
 		"""
-		if frappe.db.db_type != "mariadb":
+		if frappe.db.db_type not in ("mariadb", "mysql"):
 			return
 		frappe.db.sql("set session lock_wait_timeout = %s", 5 * 60)
 
@@ -231,7 +231,7 @@ class SiteMigration:
 
 		If someone has connected to mariadb using DB console or ipython console and then acquired
 		certain locks we won't be able to migrate."""
-		if frappe.db.db_type != "mariadb":
+		if frappe.db.db_type not in ("mariadb", "mysql"):
 			return
 
 		processes = frappe.db.sql("show full processlist", as_dict=1)
@@ -291,7 +291,7 @@ class DBQueryProgressMonitor(threading.Thread):
 		self.site = frappe.local.site
 		self.daemon = True
 		self._running = threading.Event()
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			self.conn_id = frappe.db.sql("select connection_id()")[0][0]
 			self.start()
 
