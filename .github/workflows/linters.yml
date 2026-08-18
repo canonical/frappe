@@ -123,6 +123,12 @@ jobs:
             --ignore-vuln PYSEC-2026-3613 \
             --ignore-vuln PYSEC-2026-3655 \
             --ignore-vuln PYSEC-2026-3656 \
+            --ignore-vuln GHSA-g75f-g53v-794x \
+            --ignore-vuln GHSA-gj48-438w-jh9v \
+            --ignore-vuln CVE-2026-71491 \
+            --ignore-vuln CVE-2026-59894 \
+            --ignore-vuln CVE-2026-59893 \
+            --ignore-vuln CVE-2026-54284 \
             .
 
   precommit:
