@@ -5,7 +5,7 @@ import frappe
 
 
 def execute():
-	if frappe.db.db_type not in ("mariadb", "mysql"):
+	if frappe.db.db_type != "mariadb":
 		return
 
 	all_tables = frappe.db.get_tables()
