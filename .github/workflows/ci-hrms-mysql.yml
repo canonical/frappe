@@ -76,11 +76,14 @@ jobs:
       - name: Install bench and initialise workspace
         run: |
           pip install frappe-bench
-          # Initialise bench in the workspace root using our local frappe fork
+          # Initialise bench in the workspace root using our local frappe fork.
+          # --skip-redis-config-generation: Redis runs as a service container,
+          # no local redis-server binary is needed.
           bench init "$GITHUB_WORKSPACE" \
             --ignore-exist \
             --frappe-path "$GITHUB_WORKSPACE/frappe-src" \
             --skip-assets \
+            --skip-redis-config-generation \
             --no-backups \
             --python "$(which python)"
 
