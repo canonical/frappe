@@ -155,9 +155,12 @@ def get_command(
 		if password:
 			command.append(f"--password={password}")
 
-		# MySQL 8 servers require SSL by default; disable when no SSL config provided
+		# MySQL 8 servers require SSL by default; disable when no SSL config provided.
+		# --get-server-public-key enables RSA key exchange so caching_sha2_password
+		# can authenticate without an SSL connection.
 		if frappe.conf.db_type == "mysql" and not frappe.conf.get("db_ssl_ca"):
 			command.append("--ssl-mode=DISABLED")
+			command.append("--get-server-public-key")
 
 		if dump:
 			command.extend(
