@@ -100,6 +100,9 @@ class TestRecorder(IntegrationTestCase):
 		]
 
 		sql_dialect = frappe.db.db_type or "mariadb"
+		# MySQL shares MariaDB's SQL dialect
+		if sql_dialect == "mysql":
+			sql_dialect = "mariadb"
 		for query in queries:
 			frappe.db.sql(query[sql_dialect])
 

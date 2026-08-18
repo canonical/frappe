@@ -345,6 +345,8 @@ class TestDB(IntegrationTestCase):
 				"STABLE",
 			],
 		}
+		# MySQL shares MariaDB's keyword list
+		all_keywords["mysql"] = all_keywords["mariadb"]
 		created_docs = []
 
 		# edit by rushabh: added [:1]

@@ -66,7 +66,7 @@ class TestPreparedReport(IntegrationTestCase):
 	def test_start_status_and_kill_jobs(self):
 		if frappe.db.db_type == "postgres":
 			query = "select pg_sleep(5)"
-		elif frappe.db.db_type == "mariadb":
+		elif frappe.db.db_type in ("mariadb", "mysql"):
 			query = "select sleep(5)"
 		with test_report(report_type="Query Report", query=query) as report:
 			doc = self.create_prepared_report(report.name)

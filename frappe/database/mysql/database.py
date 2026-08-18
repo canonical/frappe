@@ -201,14 +201,6 @@ class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 	def get_version(self):
 		return self.sql("SELECT VERSION()", as_list=True)[0][0]
 
-	def multisql(self, sql_dict, values=(), **kwargs):
-		"""
-		Override to fall back to 'mariadb' key when no 'mysql' key exists.
-		ERPNext/HRMS code only has 'mariadb' and 'postgres' keys.
-		"""
-		query = sql_dict.get("mysql") or sql_dict.get("mariadb") or sql_dict.get("*")
-		return self.sql(query, values, **kwargs)
-
 	def updatedb(self, doctype, meta=None):
 		"""Override to use MySQLTable instead of MariaDBTable."""
 		res = self.sql("select issingle from `tabDocType` where name=%s", (doctype,))
