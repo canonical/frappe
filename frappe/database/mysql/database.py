@@ -201,6 +201,27 @@ class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 	def get_version(self):
 		return self.sql("SELECT VERSION()", as_list=True)[0][0]
 
+	def multisql(self, sql_dict, values=(), **kwargs):
+		"""
+		Override to use MySQL-compatible SQL from multisql dicts.
+
+		Lookup order: "mysql" > "mariadb" > "*"
+
+		Why fall back to "mariadb" rather than "*":
+		  - MySQL and MariaDB share the same SQL dialect for all queries used
+		    in Frappe's multisql call sites (ON DUPLICATE KEY UPDATE, RAND(),
+		    MATCH...AGAINST, SHOW FULL PROCESSLIST, information_schema, etc.)
+		  - Some call sites have a "*" key with PostgreSQL/SQLite-specific syntax
+		    (e.g. ON CONFLICT, RANDOM()) that would silently break on MySQL.
+		  - Callers that want MySQL-specific behaviour should add a "mysql" key.
+
+		Risk: If a "mariadb" key ever contains MariaDB-only syntax (e.g. native
+		SEQUENCE commands), that code must be guarded by a db_type check BEFORE
+		reaching multisql, or a "mysql" key must be added alongside "mariadb".
+		"""
+		query = sql_dict.get("mysql") or sql_dict.get("mariadb") or sql_dict.get("*")
+		return self.sql(query, values, **kwargs)
+
 	def updatedb(self, doctype, meta=None):
 		"""Override to use MySQLTable instead of MariaDBTable."""
 		res = self.sql("select issingle from `tabDocType` where name=%s", (doctype,))

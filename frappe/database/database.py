@@ -1424,14 +1424,9 @@ class Database:
 	def multisql(self, sql_dict, values=(), **kwargs):
 		"""
 		Chooses which query to execute based on the current database type, falling back to a wildcard query.
-		For MySQL, also falls back to the 'mariadb' key since they share the same SQL dialect.
 		"""
 		current_dialect = self.db_type or "mariadb"
-		query = sql_dict.get(current_dialect)
-		# MySQL shares MariaDB's SQL dialect; fall back to mariadb key if no mysql-specific one
-		if query is None and current_dialect == "mysql":
-			query = sql_dict.get("mariadb")
-		query = query or sql_dict.get("*")
+		query = sql_dict.get(current_dialect) or sql_dict.get("*")
 		return self.sql(query, values, **kwargs)
 
 	def delete(self, doctype: str, filters: dict | list | None = None, debug=False, **kwargs):
