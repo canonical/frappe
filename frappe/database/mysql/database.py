@@ -11,7 +11,13 @@ Key incompatibilities fixed here vs MariaDB:
   - Sequences:         MariaDB has native SEQUENCE objects;
                        MySQL 8 uses AUTO_INCREMENT (emulated via a helper table)
   - CAST(x AS varchar): MySQL 8 requires CAST(x AS CHAR)
+  - DISTINCT + ORDER BY: MySQL requires ORDER BY columns to be in the SELECT
+                         list when DISTINCT is used (MariaDB is lenient).
+                         We strip ORDER BY from DISTINCT queries to avoid
+                         MySQL error 3065.
 """
+
+import re
 
 import MySQLdb
 from MySQLdb.constants import ER
@@ -52,6 +58,13 @@ class MySQLConnectionUtil(MariaDBConnectionUtil):
 		return conn_settings
 
 
+# MySQL error 3065: ORDER BY column not in SELECT list is incompatible with DISTINCT.
+# MariaDB silently allows this; MySQL enforces the SQL standard.
+# This regex matches any SELECT DISTINCT query so we can strip its ORDER BY.
+_DISTINCT_SELECT_RE = re.compile(r"^\s*SELECT\s+DISTINCT\b", re.IGNORECASE)
+_ORDER_BY_RE = re.compile(r"\s+ORDER\s+BY\b.*", re.IGNORECASE | re.DOTALL)
+
+
 class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 	"""
 	MySQL 8 database class.
@@ -71,6 +84,21 @@ class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 		super().setup_type_map()
 		# Keep db_type as mysql (super sets it to 'mariadb')
 		self.db_type = "mysql"
+
+	# ── MySQL 8 DISTINCT + ORDER BY fix ───────────────────────────────
+	def execute_query(self, query: str, values=None) -> None:
+		"""
+		MySQL 8 rejects ORDER BY on columns not in the SELECT list when
+		DISTINCT is used (error 3065). MariaDB silently permits this.
+		Strip ORDER BY from DISTINCT queries so MySQL behaves like MariaDB.
+
+		Risk: Frappe uses a default ORDER BY (creation desc) on most
+		get_all() calls. Removing it for DISTINCT queries is safe because
+		the ordering of a DISTINCT result is inherently non-deterministic.
+		"""
+		if isinstance(query, str) and _DISTINCT_SELECT_RE.match(query):
+			query = _ORDER_BY_RE.sub("", query)
+		return super().execute_query(query, values)
 
 	# ── Schema class ──────────────────────────────────────────────────
 	def get_table_class(self):
