@@ -187,9 +187,7 @@ class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 		"""Set the next value for the sequence (equivalent to SETVAL)."""
 		self._ensure_sequence_table()
 		# is_val_used=True means next_val has already been used, so advance by one step
-		row = self.sql(
-			f"SELECT `increment_by` FROM {self._SEQUENCE_TABLE} WHERE `name` = %s", (doctype,)
-		)
+		row = self.sql(f"SELECT `increment_by` FROM {self._SEQUENCE_TABLE} WHERE `name` = %s", (doctype,))
 		step = row[0][0] if row else 1
 		effective = next_val + (step if is_val_used else 0)
 		self.sql(
@@ -245,11 +243,7 @@ class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 		table_name = get_table_name(doctype)
 		if not self.has_index(table_name, index_name):
 			self.commit()
-			self.sql(
-				"ALTER TABLE `{}` ADD INDEX `{}`({})".format(
-					table_name, index_name, ", ".join(fields)
-				)
-			)
+			self.sql("ALTER TABLE `{}` ADD INDEX `{}`({})".format(table_name, index_name, ", ".join(fields)))
 			from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 			if len(fields) == 1 and not (frappe.flags.in_install or frappe.flags.in_migrate):

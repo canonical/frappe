@@ -78,9 +78,7 @@ class MySQLTable(MariaDBTable):
 		for col in self.columns.values():
 			col.build_for_alter_table(self.current_columns.get(col.fieldname.lower()))
 
-		add_column_query = [
-			f"ADD COLUMN `{col.fieldname}` {col.get_definition()}" for col in self.add_column
-		]
+		add_column_query = [f"ADD COLUMN `{col.fieldname}` {col.get_definition()}" for col in self.add_column]
 		columns_to_modify = set(self.change_type + self.set_default + self.change_nullability)
 		modify_column_query = [
 			f"MODIFY `{col.fieldname}` {col.get_definition(for_modification=True)}"
@@ -197,9 +195,9 @@ class MySQLTable(MariaDBTable):
 				from frappe import _
 
 				frappe.throw(
-					_(
-						"Primary key of doctype {0} can not be changed as there are existing values."
-					).format(self.doctype)
+					_("Primary key of doctype {0} can not be changed as there are existing values.").format(
+						self.doctype
+					)
 				)
 
 		# Reverting from UUID to normal varchar

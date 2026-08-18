@@ -670,7 +670,7 @@ class TestBackups(BaseTestCommands):
 		self.assertNotEqual(before_backup["database"], after_backup["database"])
 
 	@skipIf(
-		not (frappe.conf.db_type in ("mariadb", "mysql")),
+		frappe.conf.db_type not in ("mariadb", "mysql"),
 		"Only for MariaDB",
 	)
 	def test_backup_extract_restore(self):
@@ -691,7 +691,7 @@ class TestBackups(BaseTestCommands):
 		self.assertEqual(self.returncode, 0)
 
 	@skipIf(
-		not (frappe.conf.db_type in ("mariadb", "mysql")),
+		frappe.conf.db_type not in ("mariadb", "mysql"),
 		"Only for MariaDB",
 	)
 	def test_old_backup_restore(self):
@@ -961,7 +961,7 @@ class TestBenchBuild(IntegrationTestCase):
 
 class TestDBUtils(BaseTestCommands):
 	@skipIf(
-		not (frappe.conf.db_type in ("mariadb", "mysql")),
+		frappe.conf.db_type not in ("mariadb", "mysql"),
 		"Only for MariaDB",
 	)
 	def test_db_add_index(self):

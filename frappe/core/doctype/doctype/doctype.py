@@ -733,11 +733,13 @@ class DocType(Document):
 						# replace in one go
 						file_content = re.sub(
 							rf"{old_scrub}|{old_no_space}|{old_no_space_no_hyphen}",
-							lambda x: new_scrub
-							if x.group() == old_scrub
-							else new_no_space_no_hyphen
-							if x.group() == old_no_space_no_hyphen
-							else new_no_space,
+							lambda x: (
+								new_scrub
+								if x.group() == old_scrub
+								else new_no_space_no_hyphen
+								if x.group() == old_no_space_no_hyphen
+								else new_no_space
+							),
 							code,
 						)
 
@@ -1743,7 +1745,7 @@ def validate_fields(meta: Meta):
 
 		try:
 			link_filters = json.loads(link_filters_value)
-		except (TypeError, ValueError):
+		except TypeError, ValueError:
 			frappe.throw(
 				_("Invalid Link Filters for field {0}. Link Filters must be valid JSON.").format(
 					frappe.bold(docfield.label or docfield.fieldname)

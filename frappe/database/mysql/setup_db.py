@@ -18,7 +18,7 @@ from frappe.database.mariadb.setup_db import (
 )
 
 # Re-export so callers can import from this module
-__all__ = ["setup_database", "bootstrap_database", "drop_user_and_database"]
+__all__ = ["bootstrap_database", "drop_user_and_database", "setup_database"]
 
 
 def get_mysql_variables():

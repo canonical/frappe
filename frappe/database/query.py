@@ -84,7 +84,7 @@ def _apply_date_field_filter_conversion(value, operator: str, doctype: str, fiel
 		elif isinstance(value, datetime.datetime):
 			return value.date()
 
-	except (AttributeError, TypeError, KeyError):
+	except AttributeError, TypeError, KeyError:
 		pass
 
 	return value
@@ -662,7 +662,7 @@ class Engine:
 				else:
 					try:
 						fallback_value = int(fallback_sql)
-					except (ValueError, TypeError):
+					except ValueError, TypeError:
 						fallback_value = fallback_sql
 
 				return operator_fn(_field, ValueWrapper(fallback_value))
@@ -691,7 +691,7 @@ class Engine:
 				else:
 					try:
 						fallback_value = int(fallback_sql)
-					except (ValueError, TypeError):
+					except ValueError, TypeError:
 						fallback_value = fallback_sql
 
 				if fallback_value == _value:

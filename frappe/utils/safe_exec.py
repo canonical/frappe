@@ -388,7 +388,7 @@ def make_safe_get_request(url: str, **kwargs):
 	for record in addr_info:
 		try:
 			addr = ipaddress.ip_address(record[4][0])
-		except (ValueError, IndexError):
+		except ValueError, IndexError:
 			continue
 
 		if not addr.is_global:

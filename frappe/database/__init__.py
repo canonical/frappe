@@ -90,9 +90,7 @@ def get_db(socket=None, host=None, user=None, password=None, port=None, cur_db_n
 	elif conf.db_type == "mysql":
 		import frappe.database.mysql.database
 
-		return frappe.database.mysql.database.MySQLDatabase(
-			socket, host, user, password, port, cur_db_name
-		)
+		return frappe.database.mysql.database.MySQLDatabase(socket, host, user, password, port, cur_db_name)
 	elif conf.get("use_mysqlclient", 1):
 		import frappe.database.mariadb.mysqlclient
 

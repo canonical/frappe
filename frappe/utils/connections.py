@@ -59,7 +59,7 @@ def is_open(
 
 		try:
 			addresses = socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
-		except (socket.gaierror, TypeError):
+		except socket.gaierror, TypeError:
 			return False
 
 		# Try all addresses returned by getaddrinfo

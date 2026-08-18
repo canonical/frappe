@@ -40,7 +40,14 @@ class Instr(Function):
 		super().__init__("INSTR", haystack, needle, **kwargs)
 
 
-Locate = ImportMapper({db_type_is.MARIADB: Locate, db_type_is.MYSQL: Locate, db_type_is.POSTGRES: Strpos, db_type_is.SQLITE: Instr})
+Locate = ImportMapper(
+	{
+		db_type_is.MARIADB: Locate,
+		db_type_is.MYSQL: Locate,
+		db_type_is.POSTGRES: Strpos,
+		db_type_is.SQLITE: Instr,
+	}
+)
 
 
 # for backward compatibility
@@ -65,7 +72,9 @@ class Truncate(Function):
 		super().__init__("TRUNCATE", term, decimal, **kwargs)
 
 
-GroupConcat = ImportMapper({db_type_is.MARIADB: GROUP_CONCAT, db_type_is.MYSQL: GROUP_CONCAT, db_type_is.POSTGRES: STRING_AGG})
+GroupConcat = ImportMapper(
+	{db_type_is.MARIADB: GROUP_CONCAT, db_type_is.MYSQL: GROUP_CONCAT, db_type_is.POSTGRES: STRING_AGG}
+)
 
 Match = ImportMapper({db_type_is.MARIADB: MATCH, db_type_is.MYSQL: MATCH, db_type_is.POSTGRES: TO_TSVECTOR})
 
