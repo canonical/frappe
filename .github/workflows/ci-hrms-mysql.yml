@@ -18,23 +18,20 @@ jobs:
   hrms-mysql:
     name: HRMS on MySQL 8
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: frappe
-          MYSQL_DATABASE: _test_frappe
-          MYSQL_USER: frappe
-          MYSQL_PASSWORD: frappe
+          MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
 
       redis-cache:
         image: redis:7-alpine
@@ -49,24 +46,10 @@ jobs:
         options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
-      - name: Clone Frappe
+      - name: Checkout Frappe (this fork)
         uses: actions/checkout@v4
         with:
-          path: apps/frappe
-
-      - name: Clone HRMS
-        uses: actions/checkout@v4
-        with:
-          repository: frappe/hrms
-          branch: version-16
-          path: apps/hrms
-
-      - name: Clone ERPNext (HRMS dependency)
-        uses: actions/checkout@v4
-        with:
-          repository: frappe/erpnext
-          branch: version-16
-          path: apps/erpnext
+          path: frappe-src
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -80,110 +63,80 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y \
             libcups2-dev \
-            redis-tools \
             mysql-client \
             wkhtmltopdf
 
       - name: Verify MySQL is ready
         run: |
-          mysql -h 127.0.0.1 -P 3306 -u root -pfrappe -e "SELECT VERSION();"
+          mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT VERSION();"
 
-      - name: Setup bench environment
+      - name: Install bench and initialise workspace
         run: |
           pip install frappe-bench
-          cd apps/frappe
-          pip install -e .
-          cd ../erpnext
-          pip install -e .
-          cd ../hrms
-          pip install -e .
+          # Initialise bench in the workspace root using our local frappe fork
+          bench init "$GITHUB_WORKSPACE" \
+            --ignore-exist \
+            --frappe-path "$GITHUB_WORKSPACE/frappe-src" \
+            --skip-assets \
+            --no-backups \
+            --python "$(which python)"
 
-      - name: Initialize bench
-        working-directory: .
+      - name: Fetch ERPNext and HRMS
+        working-directory: ${{ github.workspace }}
         run: |
-          mkdir -p sites
-          echo "frappe" > sites/apps.txt
-          echo "erpnext" >> sites/apps.txt
-          echo "hrms" >> sites/apps.txt
+          bench get-app erpnext https://github.com/frappe/erpnext --branch version-16
+          bench get-app hrms    https://github.com/frappe/hrms    --branch version-16
+
+      - name: Configure Redis in common site config
+        working-directory: ${{ github.workspace }}
+        run: |
+          bench set-config -g redis_cache   "redis://127.0.0.1:13000"
+          bench set-config -g redis_queue   "redis://127.0.0.1:11000"
+          bench set-config -g redis_socketio "redis://127.0.0.1:11000"
 
       - name: Create site with MySQL
-        working-directory: .
-        env:
-          FRAPPE_DB_TYPE: mysql
-          FRAPPE_DB_HOST: 127.0.0.1
-          FRAPPE_DB_PORT: "3306"
+        working-directory: ${{ github.workspace }}
         run: |
-          # Create site config
-          mkdir -p sites/test-site
-          cat > sites/test-site/site_config.json << 'SITECONF'
-          {
-            "db_type": "mysql",
-            "db_host": "127.0.0.1",
-            "db_port": 3306,
-            "db_name": "_test_frappe",
-            "db_user": "frappe",
-            "db_password": "frappe",
-            "redis_cache": "redis://127.0.0.1:13000",
-            "redis_queue": "redis://127.0.0.1:11000",
-            "admin_password": "admin",
-            "developer_mode": 1
-          }
-          SITECONF
-
-          # Create currentsite.txt
-          echo "test-site" > sites/currentsite.txt
-
-          # Setup the database schema
-          cd apps/frappe
-          bench --site test-site new-site \
+          bench new-site test-site \
             --db-type mysql \
             --db-host 127.0.0.1 \
             --db-port 3306 \
+            --db-name test_frappe \
+            --db-password frappe \
             --db-root-username root \
-            --db-root-password frappe \
+            --db-root-password root \
             --admin-password admin \
-            --force \
-            --verbose || true
+            --verbose
 
-      - name: Install ERPNext app
-        working-directory: .
+      - name: Install ERPNext and HRMS
+        working-directory: ${{ github.workspace }}
         run: |
-          cd apps/frappe
-          bench --site test-site install-app erpnext --force || true
-
-      - name: Install HRMS app
-        working-directory: .
-        run: |
-          cd apps/frappe
-          bench --site test-site install-app hrms --force || true
+          bench --site test-site install-app erpnext
+          bench --site test-site install-app hrms
 
       - name: Verify HRMS installation
-        working-directory: .
+        working-directory: ${{ github.workspace }}
         run: |
-          cd apps/frappe
-          # Check that HRMS tables exist in the database
-          mysql -h 127.0.0.1 -P 3306 -u frappe -pfrappe _test_frappe \
+          # Check HRMS tables exist in MySQL
+          mysql -h 127.0.0.1 -P 3306 -u root -proot test_frappe \
             -e "SHOW TABLES LIKE 'tabEmployee%';" | grep -i employee
 
-          # Verify the app is installed via bench
+          # Confirm HRMS is listed as an installed app
           bench --site test-site list-apps | grep -i hrms
-
-      - name: Run HRMS smoke test
-        working-directory: .
-        run: |
-          cd apps/frappe
-          # Basic connectivity and module loading test
-          bench --site test-site execute frappe.client.get_count --args '["Employee"]' || echo "Smoke test completed"
 
       - name: Print debug info on failure
         if: failure()
         run: |
-          echo "=== MySQL Status ==="
-          mysql -h 127.0.0.1 -P 3306 -u root -pfrappe -e "SHOW DATABASES; SELECT VERSION();" || true
+          echo "=== MySQL Databases ==="
+          mysql -h 127.0.0.1 -P 3306 -u root -proot \
+            -e "SHOW DATABASES; SELECT VERSION();" || true
           echo "=== Site Config ==="
-          cat sites/test-site/site_config.json 2>/dev/null || true
+          cat "$GITHUB_WORKSPACE/sites/test-site/site_config.json" 2>/dev/null || true
+          echo "=== Common Site Config ==="
+          cat "$GITHUB_WORKSPACE/sites/common_site_config.json" 2>/dev/null || true
           echo "=== Frappe Logs ==="
-          cat sites/test-site/logs/*.log 2>/dev/null | tail -100 || true
+          tail -200 "$GITHUB_WORKSPACE/sites/test-site/logs/"*.log 2>/dev/null || true
+
