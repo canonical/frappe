@@ -140,10 +140,21 @@ def get_command(
 	import frappe
 
 	if frappe.conf.db_type in ("mariadb", "mysql"):
-		if dump:
-			bin, bin_name = which("mariadb-dump") or which("mysqldump"), "mysqldump"
+		if frappe.conf.db_type == "mysql":
+			# For MySQL: prefer mysql binary; fall back to mariadb binary.
+			# Must prefer mysql because the mariadb client binary does not accept
+			# MySQL-specific flags (--ssl-mode=DISABLED, --get-server-public-key).
+			if dump:
+				bin = which("mysqldump") or which("mariadb-dump")
+			else:
+				bin = which("mysql") or which("mariadb")
 		else:
-			bin, bin_name = which("mariadb") or which("mysql"), "mysql"
+			# For MariaDB: prefer mariadb binary; fall back to mysql binary.
+			if dump:
+				bin = which("mariadb-dump") or which("mysqldump")
+			else:
+				bin = which("mariadb") or which("mysql")
+		bin_name = "mysqldump" if dump else "mysql"
 
 		command = [f"--user={user}"]
 		if socket:
@@ -158,7 +169,10 @@ def get_command(
 		# MySQL 8 servers require SSL by default; disable when no SSL config provided.
 		# --get-server-public-key enables RSA key exchange so caching_sha2_password
 		# can authenticate without an SSL connection.
-		if frappe.conf.db_type == "mysql" and not frappe.conf.get("db_ssl_ca"):
+		# Only add these flags when using the mysql binary — the mariadb binary
+		# does not recognise --ssl-mode=DISABLED or --get-server-public-key.
+		_using_mysql_bin = bin and (bin.endswith("/mysql") or bin.endswith("/mysqldump"))
+		if frappe.conf.db_type == "mysql" and _using_mysql_bin and not frappe.conf.get("db_ssl_ca"):
 			command.append("--ssl-mode=DISABLED")
 			command.append("--get-server-public-key")
 
