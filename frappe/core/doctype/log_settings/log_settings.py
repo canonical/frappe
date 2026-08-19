@@ -174,7 +174,7 @@ def clear_log_table(doctype, days=90):
 			)
 			frappe.db.sql_ddl(f'ALTER TABLE "{original}" RENAME TO "{backup}"')
 			frappe.db.sql_ddl(f'ALTER TABLE "{temporary}" RENAME TO "{original}"')
-		elif frappe.db.db_type == "mariadb":
+		elif frappe.db.db_type in ("mariadb", "mysql"):
 			frappe.db.sql_ddl(f"CREATE TABLE `{temporary}` LIKE `{original}`")
 
 			# Copy all recent data to new table

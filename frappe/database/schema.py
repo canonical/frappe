@@ -281,7 +281,9 @@ class DbColumn:
 		# type
 		if current_def["type"] != column_type and not (
 			# XXX: MariaDB JSON is same as longtext and information schema still returns longtext
-			current_def["type"] == "longtext" and column_type == "json" and frappe.db.db_type == "mariadb"
+			current_def["type"] == "longtext"
+			and column_type == "json"
+			and frappe.db.db_type in ("mariadb", "mysql")
 		):
 			self.table.change_type.append(self)
 

@@ -345,6 +345,8 @@ class TestDB(IntegrationTestCase):
 				"STABLE",
 			],
 		}
+		# MySQL shares MariaDB's keyword list
+		all_keywords["mysql"] = all_keywords["mariadb"]
 		created_docs = []
 
 		# edit by rushabh: added [:1]
@@ -939,7 +941,7 @@ class TestDBSetValue(IntegrationTestCase):
 			from frappe.database.postgres.database import modify_query
 
 			self.assertTrue(modify_query("UPDATE `tabToDo` SET") in query)
-		if frappe.conf.db_type == "mariadb":
+		if frappe.conf.db_type in ("mariadb", "mysql"):
 			self.assertTrue("UPDATE `tabToDo` SET" in query)
 
 	def test_cleared_cache(self):

@@ -732,7 +732,7 @@ def format_date(string_date=None, format_string: str | None = None, parse_day_fi
 		formatted_date = babel.dates.format_date(
 			date, format_string, locale=(frappe.local.lang or "").replace("-", "_")
 		)
-	except (UnknownLocaleError, ValueError):
+	except UnknownLocaleError, ValueError:
 		format_string = format_string.replace("MM", "%m").replace("dd", "%d").replace("yyyy", "%Y")
 		formatted_date = date.strftime(format_string)
 	return formatted_date
@@ -764,7 +764,7 @@ def format_time(time_string=None, format_string: str | None = None) -> str:
 		formatted_time = babel.dates.format_time(
 			time_, format_string, locale=(frappe.local.lang or "").replace("-", "_")
 		)
-	except (UnknownLocaleError, ValueError):
+	except UnknownLocaleError, ValueError:
 		formatted_time = time_.strftime("%H:%M:%S")
 	return formatted_time
 
@@ -792,7 +792,7 @@ def format_datetime(datetime_string: DateTimeLikeObject, format_string: str | No
 		formatted_datetime = babel.dates.format_datetime(
 			datetime, format_string, locale=(frappe.local.lang or "").replace("-", "_")
 		)
-	except (UnknownLocaleError, ValueError):
+	except UnknownLocaleError, ValueError:
 		formatted_datetime = datetime.strftime("%Y-%m-%d %H:%M:%S")
 	return formatted_datetime
 
@@ -2331,7 +2331,7 @@ def _sanitize_column(column_name: str, db_type: str) -> str:
 	from frappe import _
 
 	column_name = sqlparse.format(column_name, strip_comments=True, keyword_case="lower")
-	if db_type == "mariadb":
+	if db_type in ("mariadb", "mysql"):
 		# strip mariadb specific comments which are like python single line comments
 		column_name = MARIADB_SPECIFIC_COMMENT.sub("", column_name)
 
@@ -2608,7 +2608,7 @@ def guess_date_format(date_string: str) -> str:
 def validate_json_string(string: str) -> None:
 	try:
 		orjson.loads(string)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		raise frappe.ValidationError
 
 

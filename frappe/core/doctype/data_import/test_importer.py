@@ -138,7 +138,7 @@ class TestImporter(IntegrationTestCase):
 		i.import_file.raw_data[1][4] = existing_doc.table_field_1[0].name
 
 		# uppercase to check if autoname field isn't replaced in mariadb
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			i.import_file.raw_data[1][0] = existing_doc.name.upper()
 		else:
 			i.import_file.raw_data[1][0] = existing_doc.name

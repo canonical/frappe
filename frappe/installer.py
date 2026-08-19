@@ -584,7 +584,7 @@ def init_singles():
 			doc.flags.ignore_mandatory = True
 			doc.flags.ignore_validate = True
 			doc.save()
-		except (ImportError, frappe.DoesNotExistError):
+		except ImportError, frappe.DoesNotExistError:
 			# The doctype exists, but controller is deleted,
 			# no need to attempt to init such single, ref: #16917
 			continue
@@ -771,7 +771,7 @@ def remove_missing_apps():
 
 
 def convert_archive_content(sql_file_path):
-	if frappe.conf.db_type == "mariadb":
+	if frappe.conf.db_type in ("mariadb", "mysql"):
 		# ever since mariaDB 10.6, row_format COMPRESSED has been deprecated and removed
 		# this step is added to ease restoring sites depending on older mariaDB servers
 		# This change was reverted by mariadb in 10.6.6
@@ -855,7 +855,7 @@ def is_downgrade(sql_file_path, verbose=False):
 	This function is only tested with mariadb.
 	TODO: Add postgres support
 	"""
-	if frappe.conf.db_type != "mariadb":
+	if frappe.conf.db_type not in ("mariadb", "mysql"):
 		return False
 
 	backup_version = get_backup_version(sql_file_path) or get_old_backup_version(sql_file_path)
@@ -915,7 +915,7 @@ def is_partial(sql_file_path: str) -> bool:
 
 
 def partial_restore(sql_file_path, verbose=False):
-	if frappe.conf.db_type == "mariadb":
+	if frappe.conf.db_type in ("mariadb", "mysql"):
 		from frappe.database.mariadb.setup_db import import_db_from_sql
 	elif frappe.conf.db_type == "postgres":
 		import warnings

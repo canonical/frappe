@@ -12,7 +12,11 @@ from frappe.database.database import savepoint
 def setup_database(force, verbose=None, mariadb_user_host_login_scope=None):
 	import frappe
 
-	if frappe.conf.db_type == "mariadb":
+	if frappe.conf.db_type == "mysql":
+		import frappe.database.mysql.setup_db
+
+		return frappe.database.mysql.setup_db.setup_database(force, verbose, mariadb_user_host_login_scope)
+	elif frappe.conf.db_type == "mariadb":
 		import frappe.database.mariadb.setup_db
 
 		return frappe.database.mariadb.setup_db.setup_database(force, verbose, mariadb_user_host_login_scope)
@@ -29,7 +33,11 @@ def setup_database(force, verbose=None, mariadb_user_host_login_scope=None):
 def bootstrap_database(verbose=None, source_sql=None):
 	import frappe
 
-	if frappe.conf.db_type == "mariadb":
+	if frappe.conf.db_type == "mysql":
+		import frappe.database.mysql.setup_db
+
+		return frappe.database.mysql.setup_db.bootstrap_database(verbose, source_sql)
+	elif frappe.conf.db_type == "mariadb":
 		import frappe.database.mariadb.setup_db
 
 		return frappe.database.mariadb.setup_db.bootstrap_database(verbose, source_sql)
@@ -46,7 +54,11 @@ def bootstrap_database(verbose=None, source_sql=None):
 def drop_user_and_database(db_name, db_user):
 	import frappe
 
-	if frappe.conf.db_type == "mariadb":
+	if frappe.conf.db_type == "mysql":
+		import frappe.database.mysql.setup_db
+
+		return frappe.database.mysql.setup_db.drop_user_and_database(db_name, db_user)
+	elif frappe.conf.db_type == "mariadb":
 		import frappe.database.mariadb.setup_db
 
 		return frappe.database.mariadb.setup_db.drop_user_and_database(db_name, db_user)
@@ -75,6 +87,10 @@ def get_db(socket=None, host=None, user=None, password=None, port=None, cur_db_n
 		import frappe.database.sqlite.database
 
 		return frappe.database.sqlite.database.SQLiteDatabase(cur_db_name=cur_db_name)
+	elif conf.db_type == "mysql":
+		import frappe.database.mysql.database
+
+		return frappe.database.mysql.database.MySQLDatabase(socket, host, user, password, port, cur_db_name)
 	elif conf.get("use_mysqlclient", 1):
 		import frappe.database.mariadb.mysqlclient
 
@@ -123,11 +139,22 @@ def get_command(
 ):
 	import frappe
 
-	if frappe.conf.db_type == "mariadb":
-		if dump:
-			bin, bin_name = which("mariadb-dump") or which("mysqldump"), "mariadb-dump"
+	if frappe.conf.db_type in ("mariadb", "mysql"):
+		if frappe.conf.db_type == "mysql":
+			# For MySQL: prefer mysql binary; fall back to mariadb binary.
+			# Must prefer mysql because the mariadb client binary does not accept
+			# MySQL-specific flags (--ssl-mode=DISABLED, --get-server-public-key).
+			if dump:
+				bin = which("mysqldump") or which("mariadb-dump")
+			else:
+				bin = which("mysql") or which("mariadb")
 		else:
-			bin, bin_name = which("mariadb") or which("mysql"), "mariadb"
+			# For MariaDB: prefer mariadb binary; fall back to mysql binary.
+			if dump:
+				bin = which("mariadb-dump") or which("mysqldump")
+			else:
+				bin = which("mariadb") or which("mysql")
+		bin_name = "mysqldump" if dump else "mysql"
 
 		command = [f"--user={user}"]
 		if socket:
@@ -138,6 +165,16 @@ def get_command(
 
 		if password:
 			command.append(f"--password={password}")
+
+		# MySQL 8 servers require SSL by default; disable when no SSL config provided.
+		# --get-server-public-key enables RSA key exchange so caching_sha2_password
+		# can authenticate without an SSL connection.
+		# Only add these flags when using the mysql binary — the mariadb binary
+		# does not recognise --ssl-mode=DISABLED or --get-server-public-key.
+		_using_mysql_bin = bin and (bin.endswith("/mysql") or bin.endswith("/mysqldump"))
+		if frappe.conf.db_type == "mysql" and _using_mysql_bin and not frappe.conf.get("db_ssl_ca"):
+			command.append("--ssl-mode=DISABLED")
+			command.append("--get-server-public-key")
 
 		if dump:
 			command.extend(

@@ -15,6 +15,8 @@ from frappe import db, scrub
 # Since we're opening and closing connections for every request this results in skipping the cache
 # to the next non-cached value hence not using cache in postgres.
 # ref: https://stackoverflow.com/questions/21356375/postgres-9-0-4-sequence-skipping-numbers
+#
+# FOR MYSQL 8 - No native SEQUENCE objects. Uses __frappe_sequences helper table.
 SEQUENCE_CACHE = 0
 
 
@@ -31,6 +33,21 @@ def create_sequence(
 	min_value: int = 0,
 	max_value: int = 0,
 ) -> str:
+	# MySQL 8: delegate to emulated sequences
+	if db.db_type == "mysql":
+		db.create_sequence(
+			doctype_name,
+			check_not_exists=check_not_exists,
+			temporary=temporary,
+			start=start_value or min_value or 1,
+			cache=cache,
+			cycle=cycle,
+			increment_by=increment_by or 1,
+			min_value=min_value or 1,
+			max_value=max_value or None,
+		)
+		return scrub(doctype_name + slug)
+
 	query = "create sequence" if not temporary else "create temporary sequence"
 	sequence_name = scrub(doctype_name + slug)
 
@@ -75,6 +92,13 @@ def create_sequence(
 def get_next_val(doctype_name: str, slug: str = "_id_seq") -> int:
 	sequence_name = scrub(f"{doctype_name}{slug}")
 
+	# MySQL 8: delegate to the emulation
+	if db.db_type == "mysql":
+		val = db.get_next_sequence_val(doctype_name)
+		if val is None:
+			raise db.SequenceGeneratorLimitExceeded
+		return val
+
 	if db.db_type == "postgres":
 		sequence_name = f"'\"{sequence_name}\"'"
 	elif db.db_type == "mariadb":
@@ -89,6 +113,11 @@ def get_next_val(doctype_name: str, slug: str = "_id_seq") -> int:
 def set_next_val(
 	doctype_name: str, next_val: int, *, slug: str = "_id_seq", is_val_used: bool = False
 ) -> None:
+	# MySQL 8: delegate to the emulation
+	if db.db_type == "mysql":
+		db.set_next_sequence_val(doctype_name, next_val, slug=slug, is_val_used=is_val_used)
+		return
+
 	is_val_used = "false" if not is_val_used else "true"
 
 	db.multisql(
@@ -105,6 +134,12 @@ def _get_existing_sequences() -> set[str]:
 			"""SELECT sequence_name FROM information_schema.sequences
 			WHERE sequence_schema = 'public'"""
 		)
+	elif db.db_type == "mysql":
+		# MySQL emulates sequences via __frappe_sequences table
+		try:
+			rows = db.sql("SELECT `name` FROM `__frappe_sequences`")
+		except Exception:
+			rows = []
 	else:
 		rows = db.sql(
 			"""SELECT TABLE_NAME FROM information_schema.TABLES

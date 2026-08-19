@@ -304,7 +304,7 @@ class SystemHealthReport(Document):
 		else:
 			self.database_version = frappe.db.sql("select version()")[0][0]
 
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			self.bufferpool_size = frappe.db.sql("show variables like 'innodb_buffer_pool_size'")[0][1]
 			self.binary_logging = frappe.db.sql("show variables like 'log_bin'")[0][1]
 

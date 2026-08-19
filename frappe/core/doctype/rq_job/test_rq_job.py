@@ -162,7 +162,7 @@ class TestRQJob(IntegrationTestCase):
 		self.assertIsNone(get_job_status(job_id))
 
 	def test_memory_usage(self):
-		if frappe.db.db_type != "mariadb":
+		if frappe.db.db_type not in ("mariadb", "mysql"):
 			return
 		job = frappe.enqueue("frappe.utils.data._get_rss_memory_usage")
 		self.check_status(job, "finished")

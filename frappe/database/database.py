@@ -1512,7 +1512,7 @@ class Database:
 
 		if ignore_duplicates:
 			# Pypika does not have same api for ignoring duplicates
-			if frappe.conf.db_type in ("mariadb", "sqlite"):
+			if frappe.conf.db_type in ("mariadb", "mysql", "sqlite"):
 				query = query.ignore()
 			elif frappe.conf.db_type == "postgres":
 				query = query.on_conflict().do_nothing()

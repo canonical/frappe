@@ -25,12 +25,14 @@ class PseudoColumnMapper(PseudoColumn):
 
 class db_type_is(Enum):
 	MARIADB = "mariadb"
+	MYSQL = "mysql"
 	POSTGRES = "postgres"
 	SQLITE = "sqlite"
 
 
 DB_TYPE_MAP = {
 	db_type_is.MARIADB: MariaDB,
+	db_type_is.MYSQL: MariaDB,  # MySQL uses same PyPika dialect as MariaDB
 	db_type_is.POSTGRES: Postgres,
 	db_type_is.SQLITE: SQLite,
 }
@@ -42,6 +44,9 @@ class ImportMapper:
 
 	def __call__(self, *args: Any, **kwds: Any) -> Callable:
 		db = db_type_is(frappe.conf.db_type)
+		# Fall back to MARIADB handler for MYSQL if no explicit MYSQL entry
+		if db not in self.func_map and db == db_type_is.MYSQL:
+			db = db_type_is.MARIADB
 		return self.func_map[db](*args, **kwds)
 
 
@@ -195,26 +200,26 @@ def patch_query_execute():
 	executing the query object
 	"""
 
-	QueryBuilder.run = execute_query
-	QueryBuilder.walk = prepare_query
+	QueryBuilder.run = execute_query  # nosemgrep: frappe-monkey-patching-not-allowed
+	QueryBuilder.walk = prepare_query  # nosemgrep: frappe-monkey-patching-not-allowed
 
 	# To support running union queries
-	_SetOperation.run = execute_query
-	_SetOperation.walk = prepare_query
+	_SetOperation.run = execute_query  # nosemgrep: frappe-monkey-patching-not-allowed
+	_SetOperation.walk = prepare_query  # nosemgrep: frappe-monkey-patching-not-allowed
 
 
 def patch_query_aggregation():
 	"""Patch aggregation functions to frappe.qb"""
 	from frappe.query_builder.functions import _avg, _max, _min, _sum
 
-	Base.max = _max
-	Base.min = _min
-	Base.avg = _avg
-	Base.sum = _sum
+	Base.max = _max  # nosemgrep: frappe-monkey-patching-not-allowed
+	Base.min = _min  # nosemgrep: frappe-monkey-patching-not-allowed
+	Base.avg = _avg  # nosemgrep: frappe-monkey-patching-not-allowed
+	Base.sum = _sum  # nosemgrep: frappe-monkey-patching-not-allowed
 
 
 def patch_get_query():
-	Base.get_query = get_query
+	Base.get_query = get_query  # nosemgrep: frappe-monkey-patching-not-allowed
 
 
 def patch_all():

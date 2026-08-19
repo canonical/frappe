@@ -1,0 +1,151 @@
+name: HRMS MySQL Integration
+
+on:
+  pull_request:
+    branches:
+      - version-16-mysql
+      - feat/version-16-mysql-support-*
+  workflow_dispatch:
+
+concurrency:
+  group: hrms-mysql-${{ github.event_name }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hrms-mysql:
+    name: HRMS on MySQL 8
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis-cache:
+        image: redis:7-alpine
+        ports:
+          - 13000:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      redis-queue:
+        image: redis:7-alpine
+        ports:
+          - 11000:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout Frappe (this fork)
+        uses: actions/checkout@v4
+        with:
+          path: frappe-src
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libcups2-dev \
+            mysql-client \
+            wkhtmltopdf
+
+      - name: Verify MySQL is ready and enable Group Replication constraints
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT VERSION();"
+          # Simulate mysql-k8s Group Replication: require PRIMARY KEY on every
+          # table.  This setting is ON by default when Group Replication is
+          # active; setting it here catches missing-PK DDL before it reaches
+          # the downstream k8s charm (which fails with error 3098).
+          mysql -h 127.0.0.1 -P 3306 -u root -proot \
+            -e "SET GLOBAL sql_require_primary_key = ON;"
+
+      - name: Install bench and initialise workspace
+        run: |
+          pip install frappe-bench
+          # Initialise bench in the workspace root using our local frappe fork.
+          # --skip-redis-config-generation: Redis runs as a service container,
+          # no local redis-server binary is needed.
+          bench init "$GITHUB_WORKSPACE" \
+            --ignore-exist \
+            --frappe-path "$GITHUB_WORKSPACE/frappe-src" \
+            --skip-assets \
+            --skip-redis-config-generation \
+            --no-backups \
+            --python "$(which python)"
+
+      - name: Fetch ERPNext and HRMS
+        working-directory: ${{ github.workspace }}
+        run: |
+          bench get-app erpnext https://github.com/frappe/erpnext --branch version-16
+          bench get-app hrms    https://github.com/frappe/hrms    --branch version-16
+
+      - name: Configure Redis in common site config
+        working-directory: ${{ github.workspace }}
+        run: |
+          bench set-config -g redis_cache   "redis://127.0.0.1:13000"
+          bench set-config -g redis_queue   "redis://127.0.0.1:11000"
+          bench set-config -g redis_socketio "redis://127.0.0.1:11000"
+
+      - name: Create site with MySQL
+        working-directory: ${{ github.workspace }}
+        run: |
+          bench new-site test-site \
+            --db-type mysql \
+            --db-host 127.0.0.1 \
+            --db-port 3306 \
+            --db-name test_frappe \
+            --db-password frappe \
+            --db-root-username root \
+            --db-root-password root \
+            --admin-password admin \
+            --verbose
+
+      - name: Install ERPNext and HRMS
+        working-directory: ${{ github.workspace }}
+        run: |
+          bench --site test-site install-app erpnext
+          bench --site test-site install-app hrms
+
+      - name: Verify HRMS installation
+        working-directory: ${{ github.workspace }}
+        run: |
+          # Check HRMS tables exist in MySQL
+          mysql -h 127.0.0.1 -P 3306 -u root -proot test_frappe \
+            -e "SHOW TABLES LIKE 'tabEmployee%';" | grep -i employee
+
+          # Confirm HRMS is listed as an installed app
+          bench --site test-site list-apps | grep -i hrms
+
+      - name: Print debug info on failure
+        if: failure()
+        run: |
+          echo "=== MySQL Databases ==="
+          mysql -h 127.0.0.1 -P 3306 -u root -proot \
+            -e "SHOW DATABASES; SELECT VERSION();" || true
+          echo "=== Site Config ==="
+          cat "$GITHUB_WORKSPACE/sites/test-site/site_config.json" 2>/dev/null || true
+          echo "=== Common Site Config ==="
+          cat "$GITHUB_WORKSPACE/sites/common_site_config.json" 2>/dev/null || true
+          echo "=== Frappe Logs ==="
+          tail -200 "$GITHUB_WORKSPACE/sites/test-site/logs/"*.log 2>/dev/null || true
+

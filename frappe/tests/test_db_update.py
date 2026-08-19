@@ -113,7 +113,7 @@ class TestDBUpdate(IntegrationTestCase):
 				(f"tab{doctype}", field),
 				as_dict=1,
 			)
-		elif frappe.db.db_type == "mariadb":
+		elif frappe.db.db_type in ("mariadb", "mysql"):
 			indexes = frappe.db.sql(
 				f"""show index from `tab{doctype}` where column_name = '{field}' and Non_unique = 0""",
 				as_dict=1,
@@ -220,7 +220,7 @@ class TestDBUpdate(IntegrationTestCase):
 
 		doctype.autoname = "hash"
 		doctype.save()
-		varchar = "varchar" if frappe.db.db_type == "mariadb" else "character varying"
+		varchar = "varchar" if frappe.db.db_type in ("mariadb", "mysql") else "character varying"
 		self.assertIn(varchar, frappe.db.get_column_type(doctype.name, "name"))
 		doc.reload()  # ensure that docs are still accesible
 

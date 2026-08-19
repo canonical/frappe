@@ -54,7 +54,7 @@ def set_encrypted_password(doctype, name, pwd, fieldname="password"):
 	)
 
 	# TODO: Simplify this via aliasing methods in `frappe.qb`
-	if frappe.db.db_type == "mariadb":
+	if frappe.db.db_type in ("mariadb", "mysql"):
 		query = query.insert(doctype, name, fieldname, encrypt(pwd), 1).on_duplicate_key_update(
 			Auth.password, Values(Auth.password)
 		)
@@ -134,7 +134,7 @@ def update_password(user, pwd, doctype="User", fieldname="password", logout_all_
 	)
 
 	# TODO: Simplify this via aliasing methods in `frappe.qb`
-	if frappe.db.db_type == "mariadb":
+	if frappe.db.db_type in ("mariadb", "mysql"):
 		query = (
 			query.insert(doctype, user, fieldname, hashPwd, 0)
 			.on_duplicate_key_update(Auth.password, hashPwd)

@@ -78,7 +78,7 @@ def optimize_doctype_job(doctype_name: str):
 	from frappe.utils import get_table_name
 
 	doctype_table = get_table_name(doctype_name, wrap_in_backticks=True)
-	if frappe.db.db_type == "mariadb":
+	if frappe.db.db_type in ("mariadb", "mysql"):
 		query = f"OPTIMIZE TABLE {doctype_table};"
 	else:
 		query = f"VACUUM (ANALYZE) {doctype_table};"

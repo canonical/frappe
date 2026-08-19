@@ -430,7 +430,7 @@ result = [
 			}
 		).insert()
 
-		if frappe.db.db_type == "mariadb":
+		if frappe.db.db_type in ("mariadb", "mysql"):
 			col, rows = report.execute_query_report(filters={})
 			self.assertEqual(col[0], "name")
 			self.assertGreaterEqual(len(rows), 1)
