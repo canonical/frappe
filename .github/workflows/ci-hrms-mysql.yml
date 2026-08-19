@@ -69,9 +69,15 @@ jobs:
             mysql-client \
             wkhtmltopdf
 
-      - name: Verify MySQL is ready
+      - name: Verify MySQL is ready and enable Group Replication constraints
         run: |
           mysql -h 127.0.0.1 -P 3306 -u root -proot -e "SELECT VERSION();"
+          # Simulate mysql-k8s Group Replication: require PRIMARY KEY on every
+          # table.  This setting is ON by default when Group Replication is
+          # active; setting it here catches missing-PK DDL before it reaches
+          # the downstream k8s charm (which fails with error 3098).
+          mysql -h 127.0.0.1 -P 3306 -u root -proot \
+            -e "SET GLOBAL sql_require_primary_key = ON;"
 
       - name: Install bench and initialise workspace
         run: |
