@@ -32,7 +32,9 @@ def execute():
 			and not is_autoincremented(doctype)
 		):
 			if frappe.db.db_type in ("mariadb", "mysql"):
-				frappe.db.sql(f"ALTER TABLE `tab{doctype}` MODIFY name varchar({frappe.db.VARCHAR_LEN})")
+				frappe.db.sql(  # nosemgrep: frappe-sql-format-injection
+					f"ALTER TABLE `tab{doctype}` MODIFY name varchar({frappe.db.VARCHAR_LEN})"
+				)
 			else:
 				frappe.db.sql(
 					f"ALTER TABLE `tab{doctype}` ALTER COLUMN name TYPE varchar({frappe.db.VARCHAR_LEN}) USING name::varchar"
