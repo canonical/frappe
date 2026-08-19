@@ -282,3 +282,43 @@ class MySQLDatabase(MySQLConnectionUtil, MySQLExceptionUtil, MariaDBDatabase):
 					value="1",
 					property_type="Check",
 				)
+
+	def create_global_search_table(self):
+		"""
+		MySQL Group Replication requires all tables to have explicit PRIMARY
+		KEY constraints (sql_require_primary_key=ON).  The MariaDB version
+		uses ENGINE=MyISAM (not InnoDB) and only a UNIQUE index, which would
+		violate both constraints.  Override to use InnoDB + PRIMARY KEY.
+		InnoDB supports FULLTEXT indexes since MySQL 5.6 / MariaDB 10.0.
+		"""
+		if "__global_search" not in self.get_tables():
+			self.sql(
+				f"""create table __global_search(
+				doctype varchar(100) NOT NULL,
+				name varchar({self.VARCHAR_LEN}) NOT NULL,
+				title varchar({self.VARCHAR_LEN}),
+				content text,
+				fulltext(content),
+				route varchar({self.VARCHAR_LEN}),
+				published TINYINT not null default 0,
+				PRIMARY KEY (doctype, name))
+				COLLATE=utf8mb4_unicode_ci
+				ENGINE=InnoDB
+				CHARACTER SET=utf8mb4"""
+			)
+
+	def create_user_settings_table(self):
+		"""
+		MySQL Group Replication requires all tables to have explicit PRIMARY
+		KEY constraints (sql_require_primary_key=ON).  The MariaDB version
+		only defines a UNIQUE index without a PRIMARY KEY.  Override to use
+		PRIMARY KEY instead.
+		"""
+		self.sql_ddl(
+			"""create table if not exists __UserSettings (
+			`user` VARCHAR(180) NOT NULL,
+			`doctype` VARCHAR(180) NOT NULL,
+			`data` TEXT,
+			PRIMARY KEY (`user`, `doctype`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"""
+		)

@@ -1,10 +1,11 @@
 """
 MySQL 8 database bootstrap and setup for Frappe.
 
-Reuses MariaDB's framework SQL (compatible with MySQL 8 with minor fixes)
-and sets up the user/database with MySQL-compatible commands.
+Uses a MySQL-specific framework SQL that adds explicit PRIMARY KEY constraints
+on all tables, required by MySQL Group Replication (sql_require_primary_key=ON).
 """
 
+import os
 import sys
 
 import click
@@ -14,11 +15,29 @@ from frappe.database.db_manager import DbManager
 from frappe.database.mariadb.setup_db import (
 	drop_user_and_database,
 	get_root_connection,
-	import_db_from_sql,
 )
 
 # Re-export so callers can import from this module
-__all__ = ["bootstrap_database", "drop_user_and_database", "setup_database"]
+__all__ = ["bootstrap_database", "drop_user_and_database", "import_db_from_sql", "setup_database"]
+
+
+def import_db_from_sql(source_sql=None, verbose=False):
+	"""Import SQL into the current database.
+
+	Uses framework_mysql.sql instead of framework_mariadb.sql to ensure all
+	tables have explicit PRIMARY KEY constraints, required by MySQL Group
+	Replication (which enforces sql_require_primary_key=ON).
+	"""
+	from frappe.database.db_manager import DbManager
+
+	db_name = frappe.conf.db_name
+	if not source_sql:
+		source_sql = os.path.join(os.path.dirname(__file__), "framework_mysql.sql")
+	DbManager(frappe.local.db).restore_database(
+		verbose, db_name, source_sql, frappe.conf.db_user, frappe.conf.db_password
+	)
+	if verbose:
+		print(f"Imported from database {source_sql}")
 
 
 def get_mysql_variables():
